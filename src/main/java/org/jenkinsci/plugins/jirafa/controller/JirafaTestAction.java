@@ -1,33 +1,28 @@
 package org.jenkinsci.plugins.jirafa.controller;
 
+import com.atlassian.jira.rest.client.api.domain.Issue;
 import hudson.matrix.MatrixConfiguration;
-import hudson.matrix.MatrixProject;
-import hudson.model.*;
-import hudson.tasks.Publisher;
+import hudson.model.Job;
 import hudson.tasks.junit.CaseResult;
-import hudson.tasks.junit.JUnitResultArchiver;
-import hudson.tasks.junit.TestDataPublisher;
-import hudson.util.DescribableList;
-import jenkins.model.Jenkins;
-import org.jenkinsci.plugins.jirafa.JirafaPrecomputer;
+import hudson.tasks.junit.TestAction;
 import org.jenkinsci.plugins.jirafa.entity.FoundIssue;
 import org.jenkinsci.plugins.jirafa.entity.Link;
+import org.jenkinsci.plugins.jirafa.entity.Test;
 import org.jenkinsci.plugins.jirafa.service.FoundIssueService;
 import org.jenkinsci.plugins.jirafa.service.JiraFinderService;
 import org.jenkinsci.plugins.jirafa.service.LinkService;
+import org.jenkinsci.plugins.jirafa.service.to.SearchCriteria;
 import org.kohsuke.stapler.bind.JavaScriptMethod;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /**
- * TODO: document this
+ * Test action that handles rendering of Jirafa extra information.
  *
  * @author Jiri Holusa (jholusa@redhat.com)
  */
-public class ExtendedCaseResult {
+public class JirafaTestAction extends TestAction {
 
     private CaseResult caseResult;
     private List<Link> linkedIssues;
@@ -35,17 +30,12 @@ public class ExtendedCaseResult {
     private LinkService linkService;
     private FoundIssueService foundIssueService;
 
-    private static String jiraUrl;
-    private static String filter;
-    private static String username;
-    private static String password;
+    private String jiraUrl;
+    private String filter;
+    private String username;
+    private String password;
 
-    /**
-     * Init method that sets up everything.
-     *
-     * @param caseResult
-     */
-    public void initCaseResult(CaseResult caseResult) {
+    public JirafaTestAction(CaseResult caseResult) {
         this.caseResult = caseResult;
 
         String jobName;
@@ -55,7 +45,6 @@ public class ExtendedCaseResult {
         } else {
             jobName = job.getName();
         }
-        initJiraProperties(job);
 
         linkService = new LinkService(jobName);
         foundIssueService = new FoundIssueService();
@@ -68,11 +57,30 @@ public class ExtendedCaseResult {
 
     @JavaScriptMethod
     public void searchIssues() {
-        /*jiraFinderService.connect();
+        JiraFinderService jiraFinderService = new JiraFinderService();
+        jiraFinderService.setJiraUrl(jiraUrl);
+        jiraFinderService.setFilter(filter);
+        jiraFinderService.setAuthUsername(username);
+        jiraFinderService.setAuthPassword(password);
 
-        foundIssues = jiraFinderService.search(new SearchCriteria(caseResult.getName(), caseResult.getSimpleName(), caseResult.getPackageName()));
+        jiraFinderService.connect();
 
-        jiraFinderService.close();*/
+        Test test = new Test();
+        test.setName(caseResult.getFullDisplayName());
+
+        List<Issue> retrievedIssues = jiraFinderService.search(new SearchCriteria(caseResult.getName(), caseResult.getSimpleName(), caseResult.getPackageName()));
+        List<FoundIssue> foundIssues = new ArrayList<FoundIssue>();
+        for (Issue issue : retrievedIssues) {
+            FoundIssue foundIssue = new FoundIssue();
+            foundIssue.setKey(issue.getKey());
+            foundIssue.setSummary(issue.getSummary());
+            foundIssue.setDescription(issue.getDescription());
+            foundIssues.add(foundIssue);
+        }
+        test.setFoundIssues(foundIssues);
+        foundIssueService.saveFoundIssuesForTest(test);
+
+        jiraFinderService.close();
     }
 
     @JavaScriptMethod
@@ -108,58 +116,50 @@ public class ExtendedCaseResult {
         }
     }
 
-    public static String getJiraURL() {
-        return jiraUrl + "browse/";
+    @Override
+    public String getIconFileName() {
+        return null;
     }
 
-    public static ExtendedCaseResult newInstance() {
-        return new ExtendedCaseResult();
+    @Override
+    public String getDisplayName() {
+        return null;
+    }
+
+    @Override
+    public String getUrlName() {
+        return null;
     }
 
     public CaseResult getCaseResult() {
         return caseResult;
     }
 
-    public void setCaseResult(CaseResult caseResult) {
-        this.caseResult = caseResult;
-    }
-
-    public void setFoundIssues(List<FoundIssue> foundIssues) {
-        this.foundIssues = foundIssues;
-    }
-
     public List<Link> getLinkedIssues() {
         return linkedIssues;
-    }
-
-    public void setLinkedIssues(List<Link> linkedIssues) {
-        this.linkedIssues = linkedIssues;
     }
 
     public List<FoundIssue> getFoundIssues() {
         return foundIssues;
     }
 
-    private void initJiraProperties(Job job) {
-        Project project;
-        if (job instanceof MatrixConfiguration) {
-            project = (MatrixConfiguration) job;
-        } else {
-            project = (FreeStyleProject) job;
-        }
-        DescribableList<Publisher, Descriptor<Publisher>> publishers =  project.getPublishersList();
+    public String getJiraUrl() {
+        return jiraUrl + "browse/";
+    }
 
-        JUnitResultArchiver archiver = publishers.get(JUnitResultArchiver.class);
-        List<TestDataPublisher> testDataPublishers = archiver.getTestDataPublishers();
-        for (TestDataPublisher testDataPublisher: testDataPublishers) {
-            if (testDataPublisher instanceof JirafaPrecomputer) {
-                JirafaPrecomputer jirafaPrecomputer = (JirafaPrecomputer) testDataPublisher;
-                jiraUrl = jirafaPrecomputer.getJiraUrl();
-                filter = jirafaPrecomputer.getFilter();
-                username = jirafaPrecomputer.getUsername();
-                password = jirafaPrecomputer.getPassword();
-                break;
-            }
-        }
+    public void setFilter(String filter) {
+        this.filter = filter;
+    }
+
+    public void setJiraUrl(String jiraUrl) {
+        this.jiraUrl = jiraUrl;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
     }
 }

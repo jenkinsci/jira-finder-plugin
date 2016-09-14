@@ -1,7 +1,7 @@
 package org.jenkinsci.plugins.jirafa.controller;
 
 /**
- * TODO: document this
+ * Transfer object between controllers ({@link JirafaTestAction}) and views.
  *
  * @author Jiri Holusa (jholusa@redhat.com)
  */

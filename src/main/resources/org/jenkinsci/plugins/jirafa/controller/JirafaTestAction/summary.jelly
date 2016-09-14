@@ -1,0 +1,110 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define"
+         xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+    <!-- Jirafa extension -->
+    <tr>
+        <td>
+            <j:set var="jirafaObject" value="${it}" />
+            <st:bind var="ajaxJirafa" value="${jirafaObject}"/>
+            <h3>${%Linked JIRAs}</h3>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <script>
+                function addSpinner() {
+                    document.getElementById("spinner").innerHTML = '<img src="${imagesURL}/spinner.gif" />';
+                }
+
+                function removeSpinner() {
+                    document.getElementById("spinner").innerHTML = '';
+                }
+            </script>
+
+            <j:if test="${empty(jirafaObject.linkedIssues)}">
+                <script>
+                    function searchForIssues() {
+                        addSpinner();
+
+                        ajaxJirafa.searchIssues(function (t) {
+                            location.reload(true);
+                        });
+                    }
+
+                    function linkIssues() {
+                        addSpinner();
+                        var issuesToLink = new Array();
+                        var inputElements = document.getElementsByName('issue[]');
+                        for(var i = 0; inputElements[i]; ++i){
+                            if(inputElements[i].checked){
+                                issuesToLink.push(inputElements[i].value);
+                            }
+                        }
+
+                        ajaxJirafa.linkIssues(issuesToLink, function (t) {
+                            location.reload(true);
+                        });
+                    }
+                </script>
+
+                No JIRA is linked to this failure. <a href="#" onclick="searchForIssues(); return false;">Refresh search</a>
+
+                <br />
+                <div id="foundIssuesList">
+                    <table>
+                        <j:forEach var="issue" items="${jirafaObject.getFoundIssueTOs()}">
+                            <tr>
+                                <td><input type="checkbox" name="issue[]" value="${issue.key}" /></td>
+                                <td><a href="${jirafaObject.getJiraURL()}${issue.key}">[${issue.key}] ${issue.summary}</a></td>
+                            </tr>
+                        </j:forEach>
+                        <tr>
+                            <td colspan="2">
+                                <input type="submit" value="Link selected issues" onclick="linkIssues(); return false;" />
+                                <st:nbsp/><st:nbsp/> <span id="spinner"></span>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+
+            </j:if>
+
+            <j:if test="${!empty(jirafaObject.linkedIssues)}">
+                <script>
+                    function deleteLinks() {
+                        addSpinner();
+                        var linksToDelete = new Array();
+                        var inputElements = document.getElementsByName('links[]');
+                        for(var i = 0; inputElements[i]; ++i){
+                            if(inputElements[i].checked){
+                                linksToDelete.push(inputElements[i].value);
+                            }
+                        }
+
+                        ajaxJirafa.deleteLinks(linksToDelete, function (t) {
+                            location.reload(true);
+                        });
+                    }
+                </script>
+
+                <div id='linkedIssuesList'>
+                    <table>
+                        <j:forEach var="link" items="${jirafaObject.linkedIssues}">
+                            <tr>
+                                <td><input type="checkbox" name="links[]" value="${link.id}" /></td>
+                                <td><a href="${jirafaObject.getJiraURL()}${link.issue}">[${link.issue}] ${link.summary}</a></td>
+                            </tr>
+                        </j:forEach>
+                        <tr>
+                            <td colspan="2">
+                                <input type="submit" value="Delete selected links" onclick="deleteLinks(); return false;" />
+                                <st:nbsp/><st:nbsp/> <span id="spinner"></span>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </j:if>
+        </td>
+    </tr>
+    <!-- end of Jirafa extension -->
+</j:jelly>

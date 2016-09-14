@@ -17,7 +17,7 @@ package org.jenkinsci.plugins.jirafa.entity;
 import java.io.Serializable;
 
 /**
- * TODO: document this
+ * Base class for all entities in DB.
  *
  * @author Jiri Holusa (jholusa@redhat.com)
  */

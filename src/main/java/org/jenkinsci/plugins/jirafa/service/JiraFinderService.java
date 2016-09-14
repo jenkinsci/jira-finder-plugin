@@ -10,8 +10,7 @@ import org.jenkinsci.plugins.jirafa.service.to.SearchCriteria;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 /**
  * This class performs search of the issues in configured JIRA.
@@ -28,6 +27,17 @@ public class JiraFinderService {
     private String authPassword;
     private int maxResults = 5;
 
+    private static final Set<String> SEARCH_FIELDS = new HashSet<String>(
+            Arrays.asList( //first 5 are mandatory by definition of JIRA REST client
+                    "summary",
+                    "issuetype",
+                    "created",
+                    "updated",
+                    "project",
+                    "status",
+                    "key",
+                    "description"
+                    ));
 
     public List<Issue> search(SearchCriteria searchCriteria) {
         String fullName = searchCriteria.getPackageName() + "." + searchCriteria.getTestName() + "." + searchCriteria.getMethodName();
@@ -40,7 +50,7 @@ public class JiraFinderService {
                 testWithMethodName + "\")";
 
         SearchResult result = client.getSearchClient()
-                    .searchJql(query, maxResults, 0, null)
+                    .searchJql(query, maxResults, 0, SEARCH_FIELDS)
                     .claim();
 
         List<Issue> issues = new ArrayList<Issue>();

@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Service layer encapsulating all accesses to database. TODO: found issues are global
+ * Service layer encapsulating all accesses to database. Found issues are stored in global database.
  *
  * @author Jiri Holusa (jholusa@redhat.com)
  */
@@ -39,7 +39,7 @@ public class FoundIssueService {
     public FoundIssueService() {
         Jenkins.getInstance().getInjector().injectMembers(this);
 
-        synchronized (EntityManager.class) { //TODO: document this
+        synchronized (EntityManager.class) { // we need to ensure that entity managers are created sequentially because of matrix jobs
             if (em == null) {
                 try {
                     em = ps.getGlobalEntityManagerFactory().createEntityManager();

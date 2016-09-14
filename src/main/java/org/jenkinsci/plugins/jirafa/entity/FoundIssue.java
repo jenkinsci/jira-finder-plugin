@@ -7,7 +7,7 @@ import javax.persistence.*;
 import java.util.List;
 
 /**
- * TODO: document this
+ * Entity representing issue in JIRA. Stored in global database.
  *
  * @author Jiri Holusa (jholusa@redhat.com)
  */

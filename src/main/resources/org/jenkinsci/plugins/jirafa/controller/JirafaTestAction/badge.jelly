@@ -1,0 +1,183 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define"
+         xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+
+    <j:set var="jirafaObject" value="${it}" />
+    <j:new var="h" className="hudson.Functions" />
+    <j:set var="uniqueId" value="${h.generateId()}" />
+    <st:bind var="ajaxJirafa${uniqueId}" value="${jirafaObject}"/>
+
+    <j:set var="linkedIssues" value="${jirafaObject.linkedIssues}" />
+    <j:set var="foundIssues" value="${jirafaObject.foundIssues}" />
+
+    <j:choose>
+        <j:when test="${linkedIssues != null and !empty linkedIssues}">
+            <i>(known)</i>
+        </j:when>
+        <j:otherwise>
+            <b>(unknown)</b>
+
+            <script>
+                var highlightRow${uniqueId} = function() {
+                    var jirafaWrapper = document.getElementById('jirafa-wrapper-${id}');
+                    var parentTd = jirafaWrapper.parentElement;
+
+                    parentTd.style.backgroundColor = '#ffdbdb';
+                }
+
+                var oldonload${uniqueId} = window.onload;
+                    if (typeof window.onload != 'function') {
+                        window.onload = highlightRow${uniqueId};
+                    } else {
+                        window.onload = function() {
+                        if (oldonload${uniqueId}) {
+                            oldonload${uniqueId}();
+                        }
+                        highlightRow${uniqueId}();
+                    }
+                }
+            </script>
+        </j:otherwise>
+    </j:choose>
+
+    <div id="jirafa-wrapper-${id}" class="failure-summary" style="display: none;">
+        <!-- Jirafa extension -->
+        <j:set var="jirafaId" value="${id}-jirafa"/>
+        <j:set var="display" value="${true ? '' : 'none'}"/>
+        <j:set var="idisplay" value="${true ? 'none' : ''}"/>
+        <j:set var="open" value="javascript:showFailureSummary('${jirafaId}')"/>
+        <j:set var="close" value="javascript:hideFailureSummary('${jirafaId}')"/>
+
+        <script>
+            function addSpinner${uniqueId}() {
+                document.getElementById("spinner${uniqueId}").innerHTML = '<img src="${imagesURL}/spinner.gif" />';
+            }
+
+            var showlink = document.getElementById('test-${id}-showlink');
+            var newShowlinkOnclickFunction = function () {
+                var jirafaWrapper = document.getElementById('jirafa-wrapper-${id}');
+                jirafaWrapper.style.display = "";
+                showFailureSummary('${jirafaId}');
+                showFailureSummary('test-${id}', '${url}/summary');
+            };
+            showlink.onclick = newShowlinkOnclickFunction;
+
+            var hidelink = document.getElementById('test-${id}-hidelink');
+            var newHidelinkOnclickFunction = function () {
+                var jirafaWrapper = document.getElementById('jirafa-wrapper-${id}');
+                jirafaWrapper.style.display = "none";
+                hideFailureSummary('${jirafaId}');
+                hideFailureSummary('test-${id}');
+            };
+            hidelink.onclick = newHidelinkOnclickFunction;
+
+            /* really nasty hack since there is no way how to define the function only once, since this badge.jelly is included
+             * for every test failure, hence we need to differentiate the functions by unique id name
+             */
+            function linkIssuesToTest${uniqueId}(identifier) {
+                addSpinner${uniqueId}();
+                var issuesToLink = new Array();
+                var inputElements = document.getElementsByName(identifier + '-issue[]');
+                var test = document.getElementById(identifier + '-link-submit').dataset.test;
+                var stacktrace = document.getElementById(identifier + '-link-submit').dataset.stacktrace;
+                for(var i = 0; inputElements[i]; ++i){
+                    if(inputElements[i].checked){
+                        issuesToLink.push(inputElements[i].value);
+                    }
+                }
+
+                ajaxJirafa${uniqueId}.linkIssues(issuesToLink, function (t) {
+                    location.reload(true);
+                });
+            }
+
+            function deleteLinks${uniqueId}(identifier) {
+                addSpinner${uniqueId}();
+
+                var linksToDelete = new Array();
+                var inputElements = document.getElementsByName(identifier + '-link[]');
+                for(var i = 0; inputElements[i]; ++i){
+                    if(inputElements[i].checked){
+                        linksToDelete.push(inputElements[i].value);
+                    }
+                }
+
+                ajaxJirafa${uniqueId}.deleteLinks(linksToDelete, function (t) {
+                    location.reload(true);
+                });
+            }
+
+            function refreshSearchOfTest${uniqueId}() {
+                addSpinner${uniqueId}();
+                ajaxJirafa${uniqueId}.searchIssues(function (t) {
+                    location.reload(true);
+                });
+            }
+        </script>
+
+        <j:set var="badgeLabel" value="${empty jirafaObject.linkedIssues ? 'Found issues' : 'Linked issues'}" />
+
+        <h4>
+            <a id="${jirafaId}-showlink" class="jirafa-showlink" href="${open}" title="Show ${title}" style="display: ${idisplay}">
+                <l:icon class="icon-document-add icon-sm"/><st:nbsp/>${badgeLabel}
+            </a>
+            <a id="${jirafaId}-hidelink" class="jirafa-hidelink" href="${close}" title="Hide ${title}" style="display: ${display}">
+                <l:icon class="icon-document-delete icon-sm"/><st:nbsp/>${badgeLabel}
+            </a>
+        </h4>
+
+        <div id="${jirafaId}" class="jirafa-box" style="display: ${display}">
+            <st:nbps />
+
+            <j:if test="${linkedIssues != null and !empty linkedIssues}">
+                <table>
+                    <j:forEach var="link" items="${linkedIssues}">
+                        <tr>
+                            <td><input type="checkbox" name="${jirafaId}-link[]" value="${link.id}" class="linkDeleteCheckbox" /></td>
+                            <td><a href="${jirafaObject.getJiraUrl()}${link.issue}">[${link.issue}] ${link.summary}</a></td>
+                        </tr>
+                    </j:forEach>
+                    <tr>
+                        <td colspan="2">
+                            <input type="submit" value="Delete selected links" id="${jirafaId}-delete-link-submit" data-test="${it.fullDisplayName}" onclick="deleteLinks${uniqueId}('${jirafaId}'); return false;" />
+                            <st:nbsp /><st:nbsp />
+                            <span id="spinner${uniqueId}"></span>
+                        </td>
+                    </tr>
+                </table>
+            </j:if>
+
+            <j:choose>
+                <j:when test="${foundIssues != null and !empty foundIssues}">
+                    <table>
+                        <j:forEach var="issue" items="${foundIssues}">
+                            <tr>
+                                <td><input type="checkbox" name="${jirafaId}-issue[]" value="${issue.key}" /></td>
+                                <td><a href="${jirafaObject.getJiraUrl()}${issue.key}">[${issue.key}] ${issue.summary}</a></td>
+                            </tr>
+                        </j:forEach>
+                        <tr>
+                            <td colspan="2">
+                                <input type="submit" value="Link selected issues" id="${jirafaId}-link-submit" data-test="${it.fullDisplayName}" data-stacktrace="${it.errorStackTrace}" onclick="linkIssuesToTest${uniqueId}('${jirafaId}'); return false;" />
+                                <st:nbsp /><st:nbsp />
+                                <input type="submit" value="Refresh search" id="${jirafaId}-refresh-search-submit" onclick="refreshSearchOfTest${uniqueId}(); return false;" />
+                                <st:nbsp /><st:nbsp />
+                                <span id="spinner${uniqueId}"></span>
+                            </td>
+                        </tr>
+                    </table>
+                </j:when>
+                <j:when test="${(foundIssues == null or empty foundIssues) and (linkedIssues == null or empty linkedIssues)}">
+                    No issues found in configured JIRA.
+                    <st:nbsp /><st:nbsp />
+                    <input type="submit" value="Refresh search" id="${jirafaId}-refresh-search-submit" onclick="refreshSearchOfTest${uniqueId}(); return false;" />
+                    <st:nbsp /><st:nbsp />
+                    <span id="spinner${uniqueId}"></span>
+                    <br clear="all" />
+                </j:when>
+            </j:choose>
+        </div>
+        <!-- end of Jirafa extension -->
+    </div>
+
+</j:jelly>

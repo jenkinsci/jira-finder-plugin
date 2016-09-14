@@ -8,6 +8,7 @@ import hudson.model.Descriptor;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.tasks.junit.*;
+import org.jenkinsci.plugins.jirafa.controller.JirafaTestData;
 import org.jenkinsci.plugins.jirafa.entity.FoundIssue;
 import org.jenkinsci.plugins.jirafa.entity.Test;
 import org.jenkinsci.plugins.jirafa.service.FoundIssueService;
@@ -21,7 +22,8 @@ import java.util.*;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 /**
- * TODO: document this
+ * Post-build step that goes through the test results and pre-searches the issues and stores the results into database,
+ * so it doesn't have to be computed when viewing the report.
  *
  * @author Jiri Holusa (jholusa@redhat.com)
  */
@@ -32,7 +34,8 @@ public class JirafaPrecomputer extends TestDataPublisher {
     private String username;
     private String password;
 
-    //TODO: document this
+    // we want to aggregate the results during the matrix jobs, hence we need to determine, if the test data contribution
+    // is done withing just a one configuration, or if it's a new build.
     private static Integer lastBuildNumber = -1;
     private volatile static Set<String> failedTestsToProcess;
 
@@ -78,7 +81,7 @@ public class JirafaPrecomputer extends TestDataPublisher {
         }
 
         jiraFinderService.close();
-        return EMPTY_CONTRIBUTION;
+        return new JirafaTestData(jiraUrl, filter, username, password);
     }
 
     @DataBoundConstructor

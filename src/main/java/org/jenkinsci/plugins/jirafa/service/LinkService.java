@@ -13,7 +13,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 /**
- * Service layer encapsulating all accesses to database. TODO: links are per-item
+ * Service layer encapsulating all accesses to database. Links are stored on per-job databases.
  *
  * @author Jiri Holusa (jholusa@redhat.com)
  */

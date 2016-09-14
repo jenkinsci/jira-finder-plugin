@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * TODO: document this
+ * Entity representing test failure.
  *
  * @author Jiri Holusa (jholusa@redhat.com)
  */
