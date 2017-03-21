@@ -97,7 +97,7 @@ public class JirafaTestAction extends TestAction {
 
     @JavaScriptMethod
     public void linkIssues(List<String> issueKeys) {
-        List<FoundIssue> issuesToLink = new ArrayList<>();
+        List<FoundIssue> issuesToLink = new ArrayList<FoundIssue>();
         for (FoundIssue issue: foundIssues) {
             if (issueKeys.contains(issue.getKey())) {
                 linkIssue(issue, caseResult);
