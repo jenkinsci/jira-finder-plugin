@@ -97,16 +97,43 @@ public class JirafaTestAction extends TestAction {
 
     @JavaScriptMethod
     public void linkIssues(List<String> issueKeys) {
+        List<FoundIssue> issuesToLink = new ArrayList<>();
         for (FoundIssue issue: foundIssues) {
             if (issueKeys.contains(issue.getKey())) {
-                linkService.linkIssueToTest(
-                        issue.getKey(),
-                        issue.getSummary(),
-                        caseResult.getFullDisplayName(),
-                        caseResult.getErrorStackTrace()
-                );
+                linkIssue(issue, caseResult);
+                issuesToLink.add(issue);
             }
         }
+
+        if (!issuesToLink.isEmpty()) {
+            linkIssuesToSimilarTests(issuesToLink);
+        }
+    }
+
+    private void linkIssuesToSimilarTests(List<FoundIssue> issues) {
+        List<CaseResult> failures = caseResult.getParent().getParent().getParent().getFailedTests();
+        String className = caseResult.getClassName();
+
+        for (CaseResult failure: failures) {
+            if (failure.equals(caseResult)) {
+                continue;
+            }
+
+            if (failure.getClassName().startsWith(className)) {
+                for (FoundIssue issue: issues) {
+                    linkIssue(issue, failure);
+                }
+            }
+        }
+    }
+
+    private void linkIssue(FoundIssue issue, CaseResult caseResult) {
+        linkService.linkIssueToTest(
+                issue.getKey(),
+                issue.getSummary(),
+                caseResult.getFullDisplayName(),
+                caseResult.getErrorStackTrace()
+        );
     }
 
     @JavaScriptMethod
