@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
+import java.util.regex.Matcher;
 
 /**
  * This class performs search of the issues in configured JIRA.
@@ -45,9 +46,9 @@ public class JiraFinderService {
         String testWithMethodName = searchCriteria.getTestName() + "." + searchCriteria.getMethodName();
 
         String query = "(" + filter + ") AND (text ~ \"" +
-                fullName + "\" OR text ~ \"" +
-                testName + "\" OR text ~ \"" +
-                testWithMethodName + "\")";
+                escapeSpecialCharacters(fullName) + "\" OR text ~ \"" +
+                escapeSpecialCharacters(testName) + "\" OR text ~ \"" +
+                escapeSpecialCharacters(testWithMethodName) + "\")";
 
         SearchResult result = client.getSearchClient()
                     .searchJql(query, maxResults, 0, SEARCH_FIELDS)
@@ -105,5 +106,20 @@ public class JiraFinderService {
 
     public void setMaxResults(int maxResults) {
         this.maxResults = maxResults;
+    }
+
+    /**
+     * Escapes JIRA special characters that cannot be used in the search query. Every special character
+     * like [ must be escaped by two slashes, see: https://confluence.atlassian.com/jirasoftwareserver072/advanced-searching-829057400.html
+     *
+     * @param string
+     * @return
+     */
+    private static String escapeSpecialCharacters(String string) {
+        String escaped = string.replaceAll("\\[", Matcher.quoteReplacement("\\\\["));
+        escaped = escaped.replaceAll("\\]", Matcher.quoteReplacement("\\\\]"));
+
+
+        return escaped;
     }
 }
